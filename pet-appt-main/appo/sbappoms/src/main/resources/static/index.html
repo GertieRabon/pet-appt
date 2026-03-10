@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Grooming - Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root { --primary-color: #6c5ce7; --secondary-color: #a29bfe; }
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { background-color: var(--primary-color); }
+        .card { border: none; border-radius: 15px; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+        .btn-primary { background-color: var(--primary-color); border: none; }
+        .btn-primary:hover { background-color: #5b4bc4; }
+        .login-page { height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .dashboard { display: none; padding-top: 30px; }
+        .status-badge { border-radius: 20px; padding: 5px 15px; font-size: 0.8rem; }
+        .sidebar { height: 100vh; background: white; border-right: 1px solid #ddd; padding: 20px; }
+        .nav-link { color: #555; padding: 10px 15px; border-radius: 10px; margin-bottom: 5px; }
+        .nav-link.active { background-color: var(--secondary-color); color: white; }
+    </style>
+</head>
+<body>
+
+<!-- Login Page -->
+<div id="loginPage" class="login-page">
+    <div class="card shadow-lg p-4" style="width: 400px;">
+        <div class="text-center mb-4">
+            <i class="bi bi-paw-fill text-primary" style="font-size: 3rem;"></i>
+            <h2 class="fw-bold">Pet Grooming</h2>
+            <p class="text-muted">Admin & Staff Portal</p>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email Address</label>
+            <input type="email" id="email" class="form-control" value="admin@example.com">
+        </div>
+        <div class="mb-4">
+            <label class="form-label">Password</label>
+            <input type="password" id="password" class="form-control" value="password">
+        </div>
+        <button onclick="handleLogin()" class="btn btn-primary w-100 py-2">Sign In</button>
+        <div id="loginMsg" class="text-danger mt-3 text-center small"></div>
+    </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard" class="dashboard container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2 sidebar d-none d-md-block">
+            <h5 class="fw-bold mb-4">Menu</h5>
+            <nav class="nav flex-column">
+                <a class="nav-link active" href="#" onclick="switchTab('appointments')"><i class="bi bi-calendar-event me-2"></i>Appointments</a>
+                <a class="nav-link" href="#" onclick="switchTab('pets')"><i class="bi bi-dog me-2"></i>Pets</a>
+                <a class="nav-link" href="#" onclick="switchTab('users')"><i class="bi bi-people me-2"></i>Users</a>
+                <hr>
+                <a class="nav-link text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-left me-2"></i>Logout</a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-10 px-4">
+            <div id="appointmentsTab">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="fw-bold">Appointments</h3>
+                    <button class="btn btn-primary btn-sm" onclick="loadData('appointments')"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                </div>
+                <div class="card shadow-sm p-3">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Pet</th>
+                                <th>Service</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="petsTab" style="display:none;">
+                <h3 class="fw-bold mb-4">Pets List</h3>
+                <div class="row" id="petsGrid"></div>
+            </div>
+
+            <div id="usersTab" style="display:none;">
+                <h3 class="fw-bold mb-4">Staff & Customers</h3>
+                <div class="card shadow-sm p-3">
+                    <table class="table">
+                        <thead class="table-light"><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+                        <tbody id="userTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:8080';
+    let token = localStorage.getItem('token');
+
+    if(token) init();
+
+    function init() {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadData('appointments');
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const msg = document.getElementById('loginMsg');
+        
+        try {
+            const res = await fetch(`${API}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            if(res.ok) {
+                token = await res.text();
+                localStorage.setItem('token', token);
+                init();
+            } else { msg.innerText = "Invalid credentials"; }
+        } catch(e) { msg.innerText = "Server unreachable"; }
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        location.reload();
+    }
+
+    function switchTab(tab) {
+        ['appointments', 'pets', 'users'].forEach(t => {
+            document.getElementById(t + 'Tab').style.display = (t === tab) ? 'block' : 'none';
+        });
+        loadData(tab);
+    }
+
+    async function loadData(type) {
+        const headers = { 'Authorization': `Bearer ${token}` };
+        try {
+            const res = await fetch(`${API}/${type}`, { headers });
+            const data = await res.json();
+            
+            if(type === 'appointments') renderAppointments(data);
+            if(type === 'pets') renderPets(data);
+            if(type === 'users') renderUsers(data);
+        } catch(e) { console.error("Session expired"); logout(); }
+    }
+
+    function renderAppointments(data) {
+        const tbody = document.getElementById('appointmentTableBody');
+        tbody.innerHTML = data.map(a => `
+            <tr>
+                <td><strong>${a.pet?.name || 'N/A'}</strong></td>
+                <td>${a.service?.name || 'Grooming'}</td>
+                <td>${new Date(a.dateTime).toLocaleString()}</td>
+                <td><span class="badge bg-${a.status === 'PENDING' ? 'warning' : 'success'} status-badge">${a.status}</span></td>
+                <td>
+                    ${a.status === 'PENDING' ? `
+                        <button onclick="action(${a.id}, 'approve')" class="btn btn-sm btn-outline-success">Approve</button>
+                    ` : '<span class="text-muted small">Processed</span>'}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderPets(data) {
+        document.getElementById('petsGrid').innerHTML = data.map(p => `
+            <div class="col-md-3 mb-3">
+                <div class="card p-3 shadow-sm text-center">
+                    <i class="bi bi-dog h1 text-primary"></i>
+                    <h5 class="mb-1">${p.name}</h5>
+                    <p class="text-muted small">${p.breed} | ${p.age}yrs</p>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderUsers(data) {
+        document.getElementById('userTableBody').innerHTML = data.map(u => `
+            <tr>
+                <td>${u.firstName} ${u.lastName}</td>
+                <td>${u.email}</td>
+                <td><span class="badge bg-secondary">${u.role}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    async function action(id, type) {
+        await fetch(`${API}/appointments/${id}/${type}`, { 
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        loadData('appointments');
+    }
+</script>
+</body>
+</html>
