@@ -2,7 +2,10 @@
 --
 -- Host: 127.0.0.1    Database: pet_grooming_db
 -- ------------------------------------------------------
--- Server version	8.0.43
+-- Server version   8.0.43
+
+CREATE DATABASE IF NOT EXISTS pet_grooming_db;
+USE pet_grooming_db;
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
